@@ -533,3 +533,237 @@ Use this mental model:
 - **Read files + no file instruction** → output stays in chat
 - **Read files + explicit file instruction** → agent may create workspace files
 - **Read files alone** → no automatic persistent memory
+
+---
+
+## How to run the agent with `task.md` and `transcript.vtt`
+
+Use the refinement pack as the **behavior spec**, then use your runtime files as the actual analysis inputs.
+
+### Role of each file group
+
+- **Agent-driving files** define how the agent should behave and format output.
+- **`task.md`** provides the task context.
+- **`transcript.vtt`** is the raw transcript to analyze.
+
+In practice:
+
+- `task.md` fills the role of **TASK_CONTEXT**
+- `transcript.vtt` fills the role of **TRANSCRIPT**
+
+### Recommended execution flow
+
+Tell Claude Code or VS Code Copilot to:
+
+1. read the agent-driving files first
+2. read `task.md` as the task context
+3. read `transcript.vtt` as the transcript
+4. generate the report
+5. optionally write the result to a file
+
+### Important note about `.vtt`
+A `.vtt` transcript may contain:
+- timestamps
+- caption numbering
+- formatting noise
+- speaker markers
+
+It is usually helpful to instruct the agent to ignore timing markers and formatting noise and focus on spoken content.
+
+---
+
+## Claude Code runtime prompt
+
+Use this when your files are already in the workspace:
+
+```text
+You are running a transcript-analysis agent.
+
+First, read these specification files in this order:
+
+1. ai_transcript_analyst_prompt.md
+2. v1_report_template.md
+3. selection_criteria.md
+4. evidence_and_inference_policy.md
+5. report_section_guidelines.md
+6. ambiguity_handling_guide.md
+7. ownership_extraction_guide.md
+
+Treat them with these roles:
+- ai_transcript_analyst_prompt.md = primary behavior spec
+- v1_report_template.md = output contract
+- selection_criteria.md = inclusion/exclusion policy
+- evidence_and_inference_policy.md = evidence and inference policy
+- report_section_guidelines.md = section-writing guidance
+- ambiguity_handling_guide.md = missing-context policy
+- ownership_extraction_guide.md = ownership/person-mention policy
+
+Then read:
+- task.md as the task context
+- transcript.vtt as the transcript to analyze
+
+Execution rules:
+- Use task.md to understand what is relevant to the user’s work.
+- Use transcript.vtt as the only transcript source.
+- Analyze one transcript only.
+- Ignore VTT timing markers, caption numbering, and formatting noise.
+- Follow the behavior and output rules from the spec files.
+- Do not summarize the spec files back to me.
+- Do not produce a generic meeting summary.
+
+Your task:
+Generate the final V1 Transcript Context Report for transcript.vtt using task.md as context.
+
+Output:
+- return the report in chat
+- then write it to docs/transcript_context_report.md
+```
+
+### Claude Code chat-only variant
+
+If you want chat output only, remove the file-writing line at the end:
+
+```text
+- then write it to docs/transcript_context_report.md
+```
+
+---
+
+## VS Code Copilot runtime prompt
+
+Use this when your files are already in the workspace:
+
+```text
+Use the following files as inputs for a transcript-analysis run.
+
+Specification files to read in order:
+1. ai_transcript_analyst_prompt.md
+2. v1_report_template.md
+3. selection_criteria.md
+4. evidence_and_inference_policy.md
+5. report_section_guidelines.md
+6. ambiguity_handling_guide.md
+7. ownership_extraction_guide.md
+
+Input files:
+- task.md = task context
+- transcript.vtt = transcript to analyze
+
+Instructions:
+- Apply the spec files as the agent rules.
+- Use task.md to determine what is relevant.
+- Use transcript.vtt as the only transcript source.
+- Analyze one transcript only.
+- Ignore VTT timing markers, caption numbering, and formatting noise.
+- Preserve the required report structure.
+- Preserve selection discipline, evidence rules, inference labeling, ambiguity handling, and ownership behavior.
+- Do not summarize the spec files.
+- Do not produce a generic meeting summary.
+
+Task:
+Generate the final transcript context report for transcript.vtt using task.md as the task context.
+
+Output requirements:
+1. Return the report in chat
+2. Write the report to docs/transcript_context_report.md
+```
+
+---
+
+## Stronger wording for variable mapping
+
+A useful instruction to include is:
+
+```text
+Read task.md and treat it as TASK_CONTEXT.
+Read transcript.vtt and treat it as TRANSCRIPT.
+Use the specification files as the operating rules for analysis and output.
+```
+
+This makes the intended mapping explicit.
+
+---
+
+## If your transcript filename includes spaces
+
+If the actual file is named something like:
+
+```text
+transcript .vtt
+```
+
+use the filename exactly as it exists in the workspace, including the space.  
+If possible, rename it to:
+
+```text
+transcript.vtt
+```
+
+to avoid path issues.
+
+---
+
+## Suggested `task.md` structure
+
+Your `task.md` does not need sensitive details. It only needs enough context to steer relevance.
+
+Example:
+
+```md
+# Task Context
+
+## Current need
+I am trying to understand the architecture relevant to my work.
+
+## What I care about
+- components that affect implementation
+- integrations and dependencies
+- how systems relate to each other
+- constraints, risks, and caveats
+- who I should ask for missing context
+
+## What I do not care about
+- social chatter
+- meeting logistics
+- status updates without technical relevance
+
+## Output preference
+I want a selective analyst-style report, not a generic summary.
+```
+
+---
+
+## Recommended repo layout
+
+A simple layout makes execution easier:
+
+```text
+/project-root
+  /docs
+  /prompts
+    ai_transcript_analyst_prompt.md
+    v1_report_template.md
+    selection_criteria.md
+    evidence_and_inference_policy.md
+    report_section_guidelines.md
+    ambiguity_handling_guide.md
+    ownership_extraction_guide.md
+  task.md
+  transcript.vtt
+```
+
+If you organize the files this way, your instruction can also say:
+
+```text
+Read all files in /prompts in the required order, then read /task.md and /transcript.vtt.
+```
+
+---
+
+## Practical rule
+
+Use this mental model:
+
+- **Spec files** tell the agent how to think
+- **`task.md`** tells the agent what matters
+- **`transcript.vtt`** gives the raw evidence to analyze
