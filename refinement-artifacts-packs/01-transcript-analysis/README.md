@@ -432,338 +432,363 @@ Constraints:
 
 ---
 
-## What the Claude Code and Copilot prompts output
+## What the “consolidate the 7 files” prompt is for
 
-By default, the prompts in this README produce **text in chat**, not files.
+This prompt is **not** for analyzing a real transcript yet.
 
-### Expected outputs
+Its purpose is to **read the 7 agent-driving files and compress them into one usable agent specification**.
 
-#### Claude Code prompt output
-The Claude Code prompt is designed to return these sections in chat:
+In other words, it is a **setup prompt** or **spec-consolidation prompt**.
 
-1. Operating model
-2. Redundancies or conflicts
-3. Consolidated production prompt
+### What it does
+It asks Claude Code or VS Code Copilot to:
+- read the 7 markdown files
+- understand how they fit together
+- resolve overlap or redundancy
+- produce one consolidated prompt/spec you can use later
 
-#### VS Code Copilot prompt output
-The Copilot prompt is designed to return these sections in chat:
+### What it outputs
+The output is a synthesized spec in chat, not a transcript report.
 
+For example, the Copilot version asks for:
 1. Agent purpose
 2. Behavioral rules
 3. Output contract
 4. Conflict resolution notes
 5. Final consolidated prompt
 
-### Important clarification
-Reading the agent-driving files does **not** automatically cause the agent to:
-- write files into the workspace
-- store anything into persistent memory
-- modify your repo
+### What it is not for
+It is not for:
+- analyzing `task.md`
+- analyzing `transcript.vtt`
+- generating the final report from a real transcript
 
-The default behavior is:
+### Recommended usage
+Use this consolidation prompt:
+- once at the beginning
+- again only when the pack changes materially
 
-**read files → synthesize → reply in chat**
+Then use the consolidated prompt for actual transcript-analysis runs.
+
+### Workflow distinction
+- **Prompt A: consolidate the spec** → turns the 7 design files into one runtime-ready prompt
+- **Prompt B: run the agent** → uses `task.md` and `transcript.vtt` to analyze a transcript
 
 ---
 
-## When the agent will write files
+## Using Copilot to create `task.md` from a user story
 
-The agent will usually write files **only if you explicitly ask it to**.
+If your user story has a description and acceptance criteria, you can use Copilot to turn it into a safe, high-level `task.md`.
 
-Examples:
+The goal is **not** to copy the user story verbatim.  
+The goal is to convert it into a **task-context lens** for transcript analysis.
+
+That means Copilot should infer:
+- what kind of technical work this is
+- what architectural context is likely relevant
+- what dependencies, constraints, or ownership signals matter
+- what the agent should ignore
+
+### Prompt to generate `task.md` from a user story
 
 ```text
-After generating the final consolidated prompt, write it to:
-docs/transcript_agent_system_prompt.md
+I have a user story that contains a description and acceptance criteria.
 
-Also write the conflict notes to:
-docs/transcript_agent_conflicts.md
-```
+Your job is to convert that user story into a task-context file for a transcript-analysis agent.
 
-Or:
+Do not rewrite the user story verbatim.
+Do not preserve unnecessary sensitive detail.
+Abstract it into a safe, high-level technical context that helps an agent decide what is relevant when analyzing a meeting transcript.
 
-```text
-Create these files in the workspace:
-- docs/agent_purpose.md
-- docs/behavioral_rules.md
-- docs/final_consolidated_prompt.md
-```
+Create a markdown file using this structure:
 
-If you do not include a file-writing instruction, the safe assumption is that the result will remain in chat only.
-
----
-
-## Memory vs files vs chat
-
-It helps to distinguish three different things:
-
-### Chat output
-Temporary response text in the conversation.
-
-### Workspace files
-Actual files created in your repo or working directory.
-
-### Persistent memory
-A product-specific memory feature, separate from normal chat output and separate from writing files.
-
-These prompts do **not** automatically store anything in persistent memory.
-
----
-
-## Recommended wording if you want file generation
-
-If you want Claude Code or Copilot to generate files from the consolidation step, add a final instruction like this:
-
-```text
-After producing the final consolidated prompt, write the outputs into these files:
-
-- docs/agent_operating_model.md
-- docs/agent_conflicts.md
-- docs/transcript_agent_system_prompt.md
-```
-
-If you want chat-only behavior, you do not need to add anything.
-
----
-
-## Practical rule
-
-Use this mental model:
-
-- **Read files + no file instruction** → output stays in chat
-- **Read files + explicit file instruction** → agent may create workspace files
-- **Read files alone** → no automatic persistent memory
-
----
-
-## How to run the agent with `task.md` and `transcript.vtt`
-
-Use the refinement pack as the **behavior spec**, then use your runtime files as the actual analysis inputs.
-
-### Role of each file group
-
-- **Agent-driving files** define how the agent should behave and format output.
-- **`task.md`** provides the task context.
-- **`transcript.vtt`** is the raw transcript to analyze.
-
-In practice:
-
-- `task.md` fills the role of **TASK_CONTEXT**
-- `transcript.vtt` fills the role of **TRANSCRIPT**
-
-### Recommended execution flow
-
-Tell Claude Code or VS Code Copilot to:
-
-1. read the agent-driving files first
-2. read `task.md` as the task context
-3. read `transcript.vtt` as the transcript
-4. generate the report
-5. optionally write the result to a file
-
-### Important note about `.vtt`
-A `.vtt` transcript may contain:
-- timestamps
-- caption numbering
-- formatting noise
-- speaker markers
-
-It is usually helpful to instruct the agent to ignore timing markers and formatting noise and focus on spoken content.
-
----
-
-## Claude Code runtime prompt
-
-Use this when your files are already in the workspace:
-
-```text
-You are running a transcript-analysis agent.
-
-First, read these specification files in this order:
-
-1. ai_transcript_analyst_prompt.md
-2. v1_report_template.md
-3. selection_criteria.md
-4. evidence_and_inference_policy.md
-5. report_section_guidelines.md
-6. ambiguity_handling_guide.md
-7. ownership_extraction_guide.md
-
-Treat them with these roles:
-- ai_transcript_analyst_prompt.md = primary behavior spec
-- v1_report_template.md = output contract
-- selection_criteria.md = inclusion/exclusion policy
-- evidence_and_inference_policy.md = evidence and inference policy
-- report_section_guidelines.md = section-writing guidance
-- ambiguity_handling_guide.md = missing-context policy
-- ownership_extraction_guide.md = ownership/person-mention policy
-
-Then read:
-- task.md as the task context
-- transcript.vtt as the transcript to analyze
-
-Execution rules:
-- Use task.md to understand what is relevant to the user’s work.
-- Use transcript.vtt as the only transcript source.
-- Analyze one transcript only.
-- Ignore VTT timing markers, caption numbering, and formatting noise.
-- Follow the behavior and output rules from the spec files.
-- Do not summarize the spec files back to me.
-- Do not produce a generic meeting summary.
-
-Your task:
-Generate the final V1 Transcript Context Report for transcript.vtt using task.md as context.
-
-Output:
-- return the report in chat
-- then write it to docs/transcript_context_report.md
-```
-
-### Claude Code chat-only variant
-
-If you want chat output only, remove the file-writing line at the end:
-
-```text
-- then write it to docs/transcript_context_report.md
-```
-
----
-
-## VS Code Copilot runtime prompt
-
-Use this when your files are already in the workspace:
-
-```text
-Use the following files as inputs for a transcript-analysis run.
-
-Specification files to read in order:
-1. ai_transcript_analyst_prompt.md
-2. v1_report_template.md
-3. selection_criteria.md
-4. evidence_and_inference_policy.md
-5. report_section_guidelines.md
-6. ambiguity_handling_guide.md
-7. ownership_extraction_guide.md
-
-Input files:
-- task.md = task context
-- transcript.vtt = transcript to analyze
-
-Instructions:
-- Apply the spec files as the agent rules.
-- Use task.md to determine what is relevant.
-- Use transcript.vtt as the only transcript source.
-- Analyze one transcript only.
-- Ignore VTT timing markers, caption numbering, and formatting noise.
-- Preserve the required report structure.
-- Preserve selection discipline, evidence rules, inference labeling, ambiguity handling, and ownership behavior.
-- Do not summarize the spec files.
-- Do not produce a generic meeting summary.
-
-Task:
-Generate the final transcript context report for transcript.vtt using task.md as the task context.
-
-Output requirements:
-1. Return the report in chat
-2. Write the report to docs/transcript_context_report.md
-```
-
----
-
-## Stronger wording for variable mapping
-
-A useful instruction to include is:
-
-```text
-Read task.md and treat it as TASK_CONTEXT.
-Read transcript.vtt and treat it as TRANSCRIPT.
-Use the specification files as the operating rules for analysis and output.
-```
-
-This makes the intended mapping explicit.
-
----
-
-## If your transcript filename includes spaces
-
-If the actual file is named something like:
-
-```text
-transcript .vtt
-```
-
-use the filename exactly as it exists in the workspace, including the space.  
-If possible, rename it to:
-
-```text
-transcript.vtt
-```
-
-to avoid path issues.
-
----
-
-## Suggested `task.md` structure
-
-Your `task.md` does not need sensitive details. It only needs enough context to steer relevance.
-
-Example:
-
-```md
 # Task Context
 
 ## Current need
-I am trying to understand the architecture relevant to my work.
+[Explain at a high level what kind of technical context I need from transcripts.]
 
 ## What I care about
-- components that affect implementation
-- integrations and dependencies
-- how systems relate to each other
-- constraints, risks, and caveats
-- who I should ask for missing context
+- [List the kinds of components, relationships, dependencies, constraints, risks, or ownership signals that are likely relevant.]
 
 ## What I do not care about
 - social chatter
 - meeting logistics
 - status updates without technical relevance
+- [Add any other likely irrelevant areas based on the story.]
 
 ## Output preference
-I want a selective analyst-style report, not a generic summary.
+[Describe the desired report style: selective analyst-style report, important components only, short evidence excerpts, clearly labeled inference, system picture, and next things to investigate.]
+
+## Useful follow-up signals
+- [What should the transcript analysis help me identify next?]
+
+Instructions:
+- Infer the likely architectural focus from the user story description and acceptance criteria.
+- Preserve technical relevance, but generalize the context.
+- Do not include confidential product names unless truly necessary.
+- Do not copy the story text directly into task.md.
+- Make the result useful as TASK_CONTEXT for transcript analysis.
+
+After generating the markdown, explain in 3-5 bullets why you chose that framing.
+
+I will paste the user story below.
 ```
+
+### Variant that writes directly to `task.md`
+
+```text
+Read the user story below and convert it into a safe, high-level task context file for transcript analysis.
+
+Write the result to:
+task.md
+
+Use this structure:
+
+# Task Context
+
+## Current need
+## What I care about
+## What I do not care about
+## Output preference
+## Useful follow-up signals
+
+Rules:
+- infer the likely architectural focus from the story description and acceptance criteria
+- do not copy the story verbatim
+- do not include unnecessary sensitive details
+- generalize into a form that helps an agent analyze transcripts for relevance
+- optimize for architectural understanding, dependencies, component relationships, risks, constraints, and who to ask for context
+
+After writing task.md, also give me a short explanation of the framing choices.
+
+User story:
+[PASTE USER STORY]
+```
+
+### What `task.md` is for
+Think of it this way:
+- `transcript.vtt` = the evidence
+- `task.md` = the filter
+
+`task.md` tells the agent what to optimize for when reading the transcript.
 
 ---
 
-## Recommended repo layout
+## How to review a generated report against the evaluation files
 
-A simple layout makes execution easier:
+The best workflow is:
+- let Copilot do a **first-pass structured critique**
+- let yourself do the **final usefulness judgment**
 
-```text
-/project-root
-  /docs
-  /prompts
-    ai_transcript_analyst_prompt.md
-    v1_report_template.md
-    selection_criteria.md
-    evidence_and_inference_policy.md
-    report_section_guidelines.md
-    ambiguity_handling_guide.md
-    ownership_extraction_guide.md
-  task.md
-  transcript.vtt
-```
+Copilot can review the report against:
+- `v1_acceptance_criteria.md`
+- `failure_modes_and_antipatterns.md`
 
-If you organize the files this way, your instruction can also say:
+You should still make the final call on whether the report actually reduced **your** ambiguity.
+
+### Copilot evaluation prompt
 
 ```text
-Read all files in /prompts in the required order, then read /task.md and /transcript.vtt.
+Review the generated transcript context report against these evaluation files:
+
+- #v1_acceptance_criteria.md
+- #failure_modes_and_antipatterns.md
+
+Also use:
+- #v1_report_template.md
+- #selection_criteria.md
+- #evidence_and_inference_policy.md
+
+Your task:
+Evaluate the report as a V1 output.
+
+Output exactly these sections:
+
+1. Acceptance criteria assessment
+   - For each major criterion, rate it as:
+     - Strong
+     - Adequate
+     - Weak
+   - Briefly explain why.
+
+2. Failure modes detected
+   - List any failure modes or antipatterns present.
+   - Quote or point to the relevant parts of the report.
+
+3. Most important weaknesses
+   - Identify the top 3 issues reducing usefulness.
+
+4. Suggested prompt adjustments
+   - Suggest the smallest changes to the agent prompt or runtime instructions that would improve the next run.
+   - Do not redesign the whole system.
+
+5. Overall verdict
+   - State whether this report is good enough for V1 use on another transcript.
+
+Constraints:
+- Be critical, not flattering.
+- Do not rewrite the whole report.
+- Do not invent missing evidence.
+- Judge the report based on usefulness, selectivity, traceability, inference discipline, ambiguity handling, and actionability.
 ```
+
+### Human review questions
+After Copilot critiques the report, ask yourself:
+1. Did this actually reduce my confusion?
+2. Did it choose the right components?
+3. Did the evidence make me trust the analysis?
+4. Did the ambiguity section reveal what I still need to learn?
+5. Did the next steps help me know what to do next?
 
 ---
 
-## Practical rule
+## How to tune after a weak run
 
-Use this mental model:
+Tune by changing the **smallest possible instruction** that fixes the specific failure you saw.
 
-- **Spec files** tell the agent how to think
-- **`task.md`** tells the agent what matters
-- **`transcript.vtt`** gives the raw evidence to analyze
+Do **not** rewrite the whole prompt after every run.
+
+### The control files
+- `iteration_playbook.md` tells you how to iterate without spiraling
+- `selection_criteria.md` controls what gets included
+- `evidence_and_inference_policy.md` controls how claims are supported and how inference is handled
+
+### Common failure types
+- overinclusion
+- wrong component selection
+- generic analysis
+- weak evidence
+- inference too aggressive
+- ambiguity not surfaced
+- weak next steps
+
+### Map failures to tuning levers
+
+#### If it included too much
+Tune **selection criteria**.
+
+Example adjustment:
+
+```text
+Only include components that are directly tied to implementation, integration, dependencies, or system behavior relevant to my task. Exclude incidental or weakly connected mentions.
+```
+
+#### If it missed what mattered
+Tune **task context** and **selection criteria**.
+
+Example adjustment:
+
+```text
+Prioritize components that appear to shape architecture, dependency flow, or integration boundaries, even if they are not discussed the longest.
+```
+
+#### If it felt generic
+Strengthen the **why-it-matters** requirement.
+
+Example adjustment:
+
+```text
+For each selected component, explain why it matters to my work before describing what it does. Avoid generic definitions.
+```
+
+#### If evidence was weak
+Strengthen the **evidence selection** rule.
+
+Example adjustment:
+
+```text
+For every selected component, choose 2–4 short excerpts that directly support its significance, relationship to other components, or key constraint. Prefer stronger evidence over more evidence.
+```
+
+#### If inference was too aggressive
+Tighten the **inference** rule.
+
+Example adjustment:
+
+```text
+When evidence is incomplete, prefer stating unresolved ambiguity over making a weak inference. Only include inference when the transcript strongly implies the conclusion.
+```
+
+#### If ambiguity was hidden
+Strengthen the **ambiguity handling** rule.
+
+Example adjustment:
+
+```text
+Explicitly surface important missing context when it blocks understanding of architecture, ownership, or next steps. Do not smooth over unresolved uncertainty.
+```
+
+#### If next steps were weak
+Strengthen the **actionability** rule.
+
+Example adjustment:
+
+```text
+Possible Next Things to Investigate should name specific components, relationships, terms, or people, not generic research suggestions.
+```
+
+### Safe tuning loop
+1. Run one transcript
+2. Review the output
+3. Identify the primary failure type
+4. Make one change only
+5. Rerun
+6. Keep or revert the change
+
+### Copilot tuning prompt
+
+```text
+Review #docs/transcript_context_report.md and tell me which of these areas needs tuning most:
+
+- selection
+- evidence
+- inference
+- ambiguity handling
+- next-step actionability
+
+Use:
+- #iteration_playbook.md
+- #selection_criteria.md
+- #evidence_and_inference_policy.md
+
+Output exactly:
+1. Primary failure type
+2. Why it failed
+3. Smallest prompt change to try next
+4. Which file that change is grounded in
+5. Revised instruction text
+```
+
+### What to avoid
+Do not:
+- rewrite the whole prompt after every run
+- change many levers at once
+- keep adding instructions forever
+- optimize for prettier wording instead of better usefulness
+
+---
+
+## Practical end-to-end workflow
+
+1. **Consolidate the spec**  
+   Use the 7 agent-driving files to create one runtime-ready agent prompt.
+
+2. **Generate `task.md`**  
+   Use your user story description and acceptance criteria to create a safe, high-level task context file.
+
+3. **Run transcript analysis**  
+   Use the runtime prompt + `task.md` + `transcript.vtt` to generate the transcript context report.
+
+4. **Review the report**  
+   Use the evaluation prompt with:
+   - `v1_acceptance_criteria.md`
+   - `failure_modes_and_antipatterns.md`
+
+5. **Tune carefully if needed**  
+   Use:
+   - `iteration_playbook.md`
+   - `selection_criteria.md`
+   - `evidence_and_inference_policy.md`
+
+6. **Repeat only as needed**  
+   Keep the iteration tight and deliberate.
