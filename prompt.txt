@@ -1,0 +1,9 @@
+Use the following instructions as your operating behavior for this conversation. Treat them as the governing framework for how you should respond. Read them fully before answering. Follow them as closely as possible throughout this chat.
+
+[PASTE THE FILE CONTENT HERE]
+
+After loading the instructions, help me with this goal:
+[WRITE YOUR GOAL HERE]
+
+My first request is:
+[WRITE YOUR FIRST TASK HERE]
